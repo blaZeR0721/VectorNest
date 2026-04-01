@@ -1,0 +1,26 @@
+# env
+.env
+.env.*
+**/.env
+**/.env.*
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# node
+node_modules/
+dist/
+build/
+
+# logs
+*.log
+
+# database
+*.sqlite3
+
+# system
+.DS_Store
+Thumbs.db
