@@ -9,18 +9,52 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.db
+*.sqlite3
+
+# virtual environments (all levels)
+venv/
+.venv/
+env/
+**/venv/
+**/.venv/
+**/env/
+
+# caches
+.pytest_cache/
+**/.pytest_cache/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 # node
 node_modules/
+**/node_modules/
 dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
 build/
+**/build/
+*.local
 
 # logs
 *.log
-
-# database
-*.sqlite3
+logs/
+**/logs/
 
 # system
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+**/.vscode/
+!.vscode/extensions.json
+.idea/
+**/.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
