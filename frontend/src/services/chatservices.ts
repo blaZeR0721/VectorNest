@@ -2,12 +2,10 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export interface ChatRequest {
   query: string;
-  k?: number;
-  mode?: "summary" | "detailed";
 }
 
 export interface ChatResponse {
-  answer: string;
+  response: string;
   sources?: string[];
 }
 

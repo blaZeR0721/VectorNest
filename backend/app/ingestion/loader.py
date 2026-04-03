@@ -1,6 +1,13 @@
-from langchain_community.document_loaders import PyPDFLoader
-
-def load_pdf(path:str):
-    loader = PyPDFLoader(path)
-    return loader.load()
+from langchain_community.document_loaders import PyPDFLoader,CSVLoader,TextLoader
+    
+def load_file(path:str):
+    if path.endswith(".pdf"):
+        return PyPDFLoader(path).load()
+    elif path.endswith(".csv"):
+        return CSVLoader(path).load()
+    elif path.endswith(".txt"):
+        return TextLoader(path).load()
+    else:
+        raise ValueError("Unsupported file type")
+    
     

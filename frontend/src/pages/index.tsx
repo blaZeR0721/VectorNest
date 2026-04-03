@@ -26,8 +26,8 @@ export default function Index() {
     setLoading(true);
 
     try {
-      const res = await sendChatMessage({ query, k: settings.k, mode: settings.mode });
-      addMessage({ role: "assistant", content: res.answer, sources: res.sources });
+      const res = await sendChatMessage({ query });
+      addMessage({ role: "assistant", content: res.response, sources: res.sources });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to get response";
       toast.error(errorMsg);
