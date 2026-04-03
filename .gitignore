@@ -58,3 +58,5 @@ Thumbs.db
 *.sln
 *.sw?
 
+# Uploads
+**/uploads/
