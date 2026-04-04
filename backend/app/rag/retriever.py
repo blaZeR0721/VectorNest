@@ -1,13 +1,12 @@
 import os
 from functools import lru_cache
 
-from langchain_community.retrievers import PineconeHybridSearchRetriever
-from langchain_pinecone import PineconeVectorStore
-from pinecone_text.sparse import BM25Encoder
-
 from app.core.config import PINECONE_INDEX
 from app.db.pinecone_client import index
 from app.ingestion.embedder import get_embeddings
+from langchain_community.retrievers import PineconeHybridSearchRetriever
+from langchain_pinecone import PineconeVectorStore
+from pinecone_text.sparse import BM25Encoder
 
 BM25_PATH = os.path.join(os.path.dirname(__file__), "bm25_default.json")
 
@@ -36,6 +35,5 @@ def get_retriever() -> PineconeHybridSearchRetriever:
 @lru_cache(maxsize=1)
 def get_dense_retriever():
     return PineconeVectorStore.from_existing_index(
-        index_name=PINECONE_INDEX,
-        embedding=get_embeddings()
+        index_name=PINECONE_INDEX, embedding=get_embeddings()
     ).as_retriever(search_kwargs={"k": 5})

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, HTTPException, status, File
-import os
 import hashlib
-from app.ingestion.loader import load_file
+import os
+
 from app.ingestion.chunking import split_docs
 from app.ingestion.indexer import index_documents, is_duplicate
+from app.ingestion.loader import load_file
 from app.models.schema import UploadResponse
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 router = APIRouter()
 

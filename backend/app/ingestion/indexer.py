@@ -1,11 +1,13 @@
 import json
 import os
-from langchain_pinecone import PineconeVectorStore
-from app.ingestion.embedder import get_embeddings
+
 from app.core.config import PINECONE_INDEX
 from app.db.pinecone_client import index
+from app.ingestion.embedder import get_embeddings
+from langchain_pinecone import PineconeVectorStore
 
 REGISTRY_PATH = os.path.join(os.path.dirname(__file__), "..", "document_registry.json")
+
 
 def _load_registry() -> dict:
     if not os.path.exists(REGISTRY_PATH):
@@ -45,7 +47,11 @@ def index_documents(docs, file_hash: str, filename: str):
 def list_documents() -> list:
     registry = _load_registry()
     return [
-        {"file_hash": fh, "filename": meta["filename"], "chunk_count": meta["chunk_count"]}
+        {
+            "file_hash": fh,
+            "filename": meta["filename"],
+            "chunk_count": meta["chunk_count"],
+        }
         for fh, meta in registry.items()
     ]
 
