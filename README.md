@@ -24,9 +24,11 @@ npm run dev
 ### Environment Variables
 
 **Backend `.env`**
-GROQ_API_KEY
-PINECONE_API_KEY
-PINECONE_INDEX
-COHERE_API_KEY
+```
+GROQ_API_KEY=
+PINECONE_API_KEY=
+PINECONE_INDEX=
+COHERE_API_KEY=
+```
 
 > Frontend runs on `http://localhost:5173` by default. Backend runs on `http://localhost:8000`. No frontend `.env` required unless deploying to a different URL.
