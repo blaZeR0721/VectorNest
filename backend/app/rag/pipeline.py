@@ -1,31 +1,33 @@
-from app.rag.retriever import get_retriever
-from app.rag.generator import get_llm
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.rag.generator import get_llm
+from app.rag.reranker import get_reranker, get_dense_reranker
 
-retriever = get_retriever()
-llm = get_llm()
+SYSTEM_PROMPT = """You are VectorNest, an intelligent assistant that answers questions strictly based on the provided document context.
 
-template = """
-Answer strictly using the context below.
-If the answer is not in the context, say "I don't know".
+Rules:
+- Answer only from the context provided. Never use outside knowledge.
+- If the answer is not in the context, respond exactly with: "I don't have enough information in the provided documents to answer that."
+- Be concise and precise. Do not pad your answers.
+- If the context contains partial information, share what is available and state what is missing.
+- Never make up facts, statistics, or details not present in the context.
+- Maintain a professional and helpful tone at all times."""
 
-Context:
-{context}
+_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", SYSTEM_PROMPT),
+    ("human", "Context:\n{context}\n\nQuestion:\n{question}")
+])
 
-Question:
-{question}
-"""
+_chain = _PROMPT | get_llm() | StrOutputParser()
 
 
-def run_rag(query: str):
-    docs = retriever.invoke(query)
+def run_rag(query: str) -> str:
+    try:
+        docs = get_reranker().invoke(query)
+    except Exception:
+        docs = get_dense_reranker().invoke(query)
 
     context = "\n\n".join([doc.page_content for doc in docs])
+    return _chain.invoke({"context": context, "question": query})
 
-    prompt = ChatPromptTemplate.from_template(template)
-
-    chain = prompt | llm | StrOutputParser()
-
-    return chain.invoke({"context": context, "question": query})
