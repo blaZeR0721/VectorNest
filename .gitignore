@@ -61,3 +61,5 @@ Thumbs.db
 # Uploads
 **/uploads/
 
+# sparse model
+bm25_default.json
