@@ -1,4 +1,6 @@
-import { Bot, User } from "lucide-react";
+import { useState } from "react";
+
+import { Bot, Check, Copy, User } from "lucide-react";
 
 import type { Message } from "@/context/appcontext";
 import { cn } from "@/lib/utils";
@@ -9,8 +11,15 @@ function formatTime(date: Date) {
 
 export function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
 
   if (!isUser && !message.content) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div
@@ -57,14 +66,30 @@ export function ChatBubble({ message }: { message: Message }) {
           </div>
         )}
 
-        <span
+        <div
           className={cn(
-            "text-[10px] text-muted-foreground",
-            isUser ? "text-right" : "text-left"
+            "flex items-center gap-2",
+            isUser ? "flex-row-reverse" : "flex-row"
           )}
         >
-          {formatTime(message.timestamp)}
-        </span>
+          <span className="text-[10px] text-muted-foreground">
+            {formatTime(message.timestamp)}
+          </span>
+
+          {!isUser && (
+            <button
+              onClick={handleCopy}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Copy response"
+            >
+              {copied ? (
+                <Check className="w-3 h-3 text-primary" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
