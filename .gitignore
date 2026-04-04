@@ -66,3 +66,7 @@ bm25_default.json
 
 # document_registry
 document_registry.json
+
+# prettier
+.prettierrc
+.prettierignore
