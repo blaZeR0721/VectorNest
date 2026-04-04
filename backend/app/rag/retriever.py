@@ -1,13 +1,21 @@
-from langchain_pinecone import PineconeVectorStore
+from langchain_community.retrievers import PineconeHybridSearchRetriever
+from pinecone_text.sparse import BM25Encoder
 from app.ingestion.embedder import get_embeddings
-from app.core.config import PINECONE_INDEX
+from app.db.pinecone_client import index
+from app.db.bm25_store import BM25_PATH
+import os
 
 def get_retriever():
-    embeddings = get_embeddings()
+    if os.path.exists(BM25_PATH):
+        bm25 = BM25Encoder().load(BM25_PATH)
+    else:
+        bm25 = BM25Encoder.default()
 
-    vectorstore = PineconeVectorStore.from_existing_index(
-        index_name=PINECONE_INDEX,
-        embedding=embeddings
+    return PineconeHybridSearchRetriever(
+        embeddings=get_embeddings(),
+        sparse_encoder=bm25,
+        index=index,
+        top_k=4,
+        alpha=0.5,
+        text_key="text"
     )
-    return vectorstore.as_retriever(search_kwargs={"k":4})
-

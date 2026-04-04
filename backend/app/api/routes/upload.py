@@ -55,7 +55,7 @@ async def upload_file(file: UploadFile = File(...)):
         if is_duplicate(file_hash):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"{file.filename} has already been indexed.",
+                detail=f"{file.filename} has already been uploaded.",
             )
 
         docs = load_file(file_path)

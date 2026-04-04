@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.chat import router as chat_router
 from app.api.routes.upload import router as upload_router
-# from fastapi.exceptions import RequestValidationError
-# from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -18,9 +16,4 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# @app.exception_handler(RequestValidationError)
-# async def validation_exception_handler(request, exc):
-#     return JSONResponse(
-#         status_code=413,
-#         content={"detail": "File too large."}
-#     )
+
