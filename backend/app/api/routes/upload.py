@@ -1,28 +1,23 @@
 from fastapi import APIRouter, UploadFile, HTTPException, status, File
 import os
 import hashlib
-from pydantic import BaseModel
 from app.ingestion.loader import load_file
 from app.ingestion.chunking import split_docs
 from app.ingestion.indexer import index_documents, is_duplicate
+from app.models.schema import UploadResponse
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads"
-ALLOWED_EXTENSIONS = {".pdf", ".csv", ".txt"}
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
+ALLOWED_EXTENSIONS = {".pdf", ".csv", ".txt", ".docx"}
 MAX_FILE_SIZE = {
     ".txt": 1 * 1024 * 1024,
     ".csv": 3 * 1024 * 1024,
     ".pdf": 10 * 1024 * 1024,
+    ".docx": 5 * 1024 * 1024,
 }
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-
-class UploadResponse(BaseModel):
-    status: str
-    filename: str
-    chunk_count: int
 
 
 @router.post("/uploads", response_model=UploadResponse)
@@ -31,7 +26,7 @@ async def upload_file(file: UploadFile = File(...)):
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type. Allowed:{','.join(ALLOWED_EXTENSIONS)}",
+            detail=f"Unsupported file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
         )
     max_file_size = MAX_FILE_SIZE.get(extension)
     if file.size > max_file_size:
@@ -41,8 +36,8 @@ async def upload_file(file: UploadFile = File(...)):
         )
 
     file_path = os.path.join(UPLOAD_DIR, file.filename)
-
     hasher = hashlib.sha256()
+    chunks = []
 
     try:
         with open(file_path, "wb") as f:
@@ -60,7 +55,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         docs = load_file(file_path)
         chunks = split_docs(docs)
-        index_documents(chunks, file_hash)
+        index_documents(chunks, file_hash, file.filename)
 
     except HTTPException:
         raise
@@ -68,7 +63,7 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error Processing {extension} file.",
+            detail=f"Error processing {extension} file.",
         )
 
     finally:

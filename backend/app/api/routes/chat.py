@@ -1,38 +1,29 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel,Field
-from app.rag.pipeline import run_rag
+from fastapi.responses import StreamingResponse
+from app.models.schema import QueryRequest
+from app.rag.pipeline import run_rag_stream
 
 router = APIRouter()
 
 
-class QueryRequest(BaseModel):
-    query: str = Field(..., min_length=1)
-
-
-class QueryResponse(BaseModel):
-    response: str
-
-
-@router.post("/chat", response_model=QueryResponse)
-def chat(req: QueryRequest):
+async def _stream_with_error_guard(query: str):
     try:
-        answer = run_rag(req.query)
-
-        if not answer:
-            raise ValueError("The RAG pipeline returned an empty response.")
-        return {"response": answer}
-
+        async for chunk in run_rag_stream(query):
+            yield chunk
     except ConnectionError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"The AI service is temporarily unavailable. Please try again later.",
-        )
+        yield "The AI service is temporarily unavailable."
+    except Exception:
+        yield "An internal error occurred while processing your request."
 
-    except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ve))
 
-    except Exception as e:
+@router.post("/chat")
+async def chat(req: QueryRequest):
+    if not req.query:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An internal error occured while processing your request",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Query must not be empty."
         )
+    return StreamingResponse(
+        _stream_with_error_guard(req.query),
+        media_type="text/plain"
+    )

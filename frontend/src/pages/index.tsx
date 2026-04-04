@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "@/context/appcontext";
-import { sendChatMessage } from "@/services/chatservices";
+import { sendChatMessageStream } from "@/services/chatservices";
 import { ChatBubble } from "@/components/chatbubble";
 import { ChatInput } from "@/components/chatinput";
 import { FileUploader } from "@/components/fileuploader";
@@ -12,34 +12,51 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function Index() {
-  const { messages, addMessage, settings } = useApp();
+  const { messages, addMessage, updateMessage, replaceMessage, settings } = useApp();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isStreaming = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
   const handleSend = async (query: string) => {
+    if (isStreaming.current) return;
+    isStreaming.current = true;
+
     addMessage({ role: "user", content: query });
     setLoading(true);
 
+    const assistantId = crypto.randomUUID();
+    addMessage({ role: "assistant", content: "", id: assistantId });
+
+    let firstChunk = true;
+
     try {
-      const res = await sendChatMessage({ query });
-      addMessage({ role: "assistant", content: res.response, sources: res.sources });
+     await sendChatMessageStream({ query }, async (chunk) => {
+      if (firstChunk) {
+        setLoading(false);
+        firstChunk = false;
+      }
+      for (const char of chunk) {
+        updateMessage(assistantId, char);
+        await new Promise((r) => setTimeout(r, 15));
+      }
+    });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to get response";
       toast.error(errorMsg);
-      addMessage({ role: "assistant", content: `⚠️ ${errorMsg}` });
+      replaceMessage(assistantId, `⚠️ ${errorMsg}`);
     } finally {
       setLoading(false);
+      isStreaming.current = false;
     }
   };
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
       <aside
         className={cn(
           "flex flex-col border-r border-border bg-card transition-all duration-300 shrink-0",
@@ -67,7 +84,6 @@ export default function Index() {
         </div>
       </aside>
 
-      {/* Toggle sidebar */}
       <Button
         variant="ghost"
         size="icon"
@@ -78,7 +94,6 @@ export default function Index() {
         {sidebarOpen ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
       </Button>
 
-      {/* Chat area */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="px-6 py-3 border-b border-border flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-primary" />

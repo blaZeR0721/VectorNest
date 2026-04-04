@@ -8,5 +8,6 @@ def get_llm():
         api_key=GROQ_API_KEY,
         model='llama-3.3-70b-versatile',
         temperature=0,
-        max_tokens=512
+        max_tokens=512,
+        streaming=True
     )

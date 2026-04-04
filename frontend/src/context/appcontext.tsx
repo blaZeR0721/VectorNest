@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -8,24 +9,31 @@ export interface Message {
   sources?: string[];
 }
 
+
 export interface Settings {
   k: number;
   mode: "summary" | "detailed";
 }
 
+
 export type Theme = "light" | "dark";
+
 
 interface AppState {
   messages: Message[];
   settings: Settings;
   theme: Theme;
   setTheme: (t: Theme) => void;
-  addMessage: (msg: Omit<Message, "id" | "timestamp">) => void;
+  addMessage: (msg: Omit<Message, "id" | "timestamp"> & { id?: string }) => void;
+  updateMessage: (id: string, chunk: string) => void;
+  replaceMessage: (id: string, content: string) => void;
   clearHistory: () => void;
   updateSettings: (s: Partial<Settings>) => void;
 }
 
+
 const AppContext = createContext<AppState | null>(null);
+
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,39 +47,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return "dark";
   });
 
+
   const setTheme = useCallback((t: Theme) => {
     const root = document.documentElement;
-    root.classList.add("no-transitions");
+    root.classList.add("theme-transitioning");
     root.classList.toggle("dark", t === "dark");
     localStorage.setItem("vectornest-theme", t);
     setThemeState(t);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        root.classList.remove("no-transitions");
-      });
-    });
+    setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+    }, 450);
   }, []);
 
-  const addMessage = useCallback((msg: Omit<Message, "id" | "timestamp">) => {
+
+  const addMessage = useCallback((msg: Omit<Message, "id" | "timestamp"> & { id?: string }) => {
     setMessages((prev) => [
       ...prev,
-      { ...msg, id: crypto.randomUUID(), timestamp: new Date() },
+      { ...msg, id: msg.id ?? crypto.randomUUID(), timestamp: new Date() },
     ]);
   }, []);
 
+
+  const updateMessage = useCallback((id: string, chunk: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, content: m.content + chunk } : m))
+    );
+  }, []);
+
+
+  const replaceMessage = useCallback((id: string, content: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, content } : m))
+    );
+  }, []);
+
+
   const clearHistory = useCallback(() => setMessages([]), []);
+
 
   const updateSettings = useCallback(
     (s: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...s })),
     []
   );
 
+
   return (
-    <AppContext.Provider value={{ messages, settings, theme, setTheme, addMessage, clearHistory, updateSettings }}>
+    <AppContext.Provider value={{ messages, settings, theme, setTheme, addMessage, updateMessage, replaceMessage, clearHistory, updateSettings }}>
       {children}
     </AppContext.Provider>
   );
 }
+
 
 export function useApp() {
   const ctx = useContext(AppContext);

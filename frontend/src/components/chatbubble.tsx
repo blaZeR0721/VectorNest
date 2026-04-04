@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { Message } from "@/context/AppContext";
+import type { Message } from "@/context/appcontext";
 import { Bot, User } from "lucide-react";
 
 function formatTime(date: Date) {
@@ -8,6 +8,8 @@ function formatTime(date: Date) {
 
 export function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
+
+  if (!isUser && !message.content) return null;
 
   return (
     <div className={cn("flex gap-3 max-w-[85%]", isUser ? "ml-auto flex-row-reverse" : "mr-auto")}>

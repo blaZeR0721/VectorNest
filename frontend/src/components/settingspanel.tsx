@@ -1,4 +1,4 @@
-import { useApp } from "@/context/AppContext";
+import { useApp } from "@/context/appcontext";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

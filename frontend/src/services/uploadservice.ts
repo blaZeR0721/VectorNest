@@ -9,13 +9,21 @@ const ALLOWED_TYPES = [
 
 const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".csv", ".docx"];
 
+const MAX_SIZE: Record<string, number> = {
+  ".txt": 1 * 1024 * 1024,
+  ".csv": 3 * 1024 * 1024,
+  ".pdf": 10 * 1024 * 1024,
+  ".docx": 5 * 1024 * 1024,
+};
+
 export function validateFile(file: File): string | null {
   const ext = "." + file.name.split(".").pop()?.toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext) && !ALLOWED_TYPES.includes(file.type)) {
-    return `Unsupported file type: ${file.name}. Allowed: PDF, TXT, DOCX, CSV`;
+    return `Unsupported file type. Allowed: .pdf, .txt, .csv, .docx`;
   }
-  if (file.size > 50 * 1024 * 1024) {
-    return `File too large: ${file.name} (max 50MB)`;
+  const maxSize = MAX_SIZE[ext] ?? 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return `File too large, maximum size for ${ext} files is ${maxSize / (1024 * 1024)}MB`;
   }
   return null;
 }
@@ -25,6 +33,12 @@ export interface UploadProgress {
   progress: number;
   status: "uploading" | "success" | "error";
   error?: string;
+}
+
+export interface IndexedDocument {
+  file_hash: string;
+  filename: string;
+  chunk_count: number;
 }
 
 export async function uploadDocument(
@@ -56,7 +70,20 @@ export async function uploadDocument(
     });
 
     xhr.addEventListener("error", () => reject(new Error("Network error during upload")));
-    xhr.open("POST", `${API_BASE}/upload`);
+    xhr.open("POST", `${API_BASE}/api/uploads`);
     xhr.send(formData);
   });
+}
+
+export async function fetchDocuments(): Promise<IndexedDocument[]> {
+  const res = await fetch(`${API_BASE}/api/documents`);
+  if (!res.ok) throw new Error("Failed to fetch documents");
+  return res.json();
+}
+
+export async function deleteDocument(file_hash: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/documents/${file_hash}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete document");
 }
