@@ -61,6 +61,3 @@ Thumbs.db
 # Uploads
 **/uploads/
 
-# BM25
-backend/app/db/bm25.json
-backend/app/db/bm25_corpus.json
