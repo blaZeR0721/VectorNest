@@ -1,11 +1,13 @@
-import { useApp } from "@/context/appcontext";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Moon, Settings, Sun, Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Trash2, Settings, Sun, Moon } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useApp } from "@/context/appcontext";
 
 export function SettingsPanel() {
-  const { settings, updateSettings, clearHistory, messages, theme, setTheme } = useApp();
+  const { settings, updateSettings, clearHistory, messages, theme, setTheme } =
+    useApp();
 
   return (
     <div className="p-4 space-y-5">
@@ -16,7 +18,11 @@ export function SettingsPanel() {
 
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          {theme === "dark" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          {theme === "dark" ? (
+            <Moon className="w-3.5 h-3.5" />
+          ) : (
+            <Sun className="w-3.5 h-3.5" />
+          )}
           {theme === "dark" ? "Dark mode" : "Light mode"}
         </Label>
         <Switch

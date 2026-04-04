@@ -1,6 +1,7 @@
-import { cn } from "@/lib/utils";
-import type { Message } from "@/context/appcontext";
 import { Bot, User } from "lucide-react";
+
+import type { Message } from "@/context/appcontext";
+import { cn } from "@/lib/utils";
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -12,7 +13,12 @@ export function ChatBubble({ message }: { message: Message }) {
   if (!isUser && !message.content) return null;
 
   return (
-    <div className={cn("flex gap-3 max-w-[85%]", isUser ? "ml-auto flex-row-reverse" : "mr-auto")}>
+    <div
+      className={cn(
+        "flex gap-3 max-w-[85%]",
+        isUser ? "ml-auto flex-row-reverse" : "mr-auto"
+      )}
+    >
       <div
         className={cn(
           "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-1",
@@ -51,7 +57,12 @@ export function ChatBubble({ message }: { message: Message }) {
           </div>
         )}
 
-        <span className={cn("text-[10px] text-muted-foreground", isUser ? "text-right" : "text-left")}>
+        <span
+          className={cn(
+            "text-[10px] text-muted-foreground",
+            isUser ? "text-right" : "text-left"
+          )}
+        >
           {formatTime(message.timestamp)}
         </span>
       </div>

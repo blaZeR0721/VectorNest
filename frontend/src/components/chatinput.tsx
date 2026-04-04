@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import { Send } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
@@ -14,7 +16,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, 120) + "px";
     }
   }, [value]);
 

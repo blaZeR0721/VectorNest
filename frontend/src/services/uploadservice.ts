@@ -29,6 +29,7 @@ export function validateFile(file: File): string | null {
 }
 
 export interface UploadProgress {
+  id: string;
   fileName: string;
   progress: number;
   status: "uploading" | "success" | "error";
@@ -69,7 +70,9 @@ export async function uploadDocument(
       }
     });
 
-    xhr.addEventListener("error", () => reject(new Error("Network error during upload")));
+    xhr.addEventListener("error", () =>
+      reject(new Error("Network error during upload"))
+    );
     xhr.open("POST", `${API_BASE}/api/uploads`);
     xhr.send(formData);
   });

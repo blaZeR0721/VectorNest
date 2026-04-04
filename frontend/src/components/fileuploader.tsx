@@ -1,15 +1,24 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, FileText, CheckCircle2, XCircle, X, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
+  CheckCircle2,
+  FileText,
+  Trash2,
+  Upload,
+  X,
+  XCircle,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  type IndexedDocument,
+  type UploadProgress,
+  deleteDocument,
+  fetchDocuments,
   uploadDocument,
   validateFile,
-  fetchDocuments,
-  deleteDocument,
-  type UploadProgress,
-  type IndexedDocument,
 } from "@/services/uploadservice";
-import { cn } from "@/lib/utils";
 
 export function FileUploader() {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
@@ -30,50 +39,69 @@ export function FileUploader() {
     loadDocuments();
   }, [loadDocuments]);
 
-  const processFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files);
+  const processFiles = useCallback(
+    async (files: FileList | File[]) => {
+      const fileArray = Array.from(files);
 
-    for (const file of fileArray) {
-      const error = validateFile(file);
-      if (error) {
+      for (const file of fileArray) {
+        const uploadId = crypto.randomUUID();
+        const error = validateFile(file);
+        if (error) {
+          setUploads((prev) => [
+            ...prev,
+            {
+              id: uploadId,
+              fileName: file.name,
+              progress: 0,
+              status: "error",
+              error,
+            },
+          ]);
+          continue;
+        }
+
         setUploads((prev) => [
           ...prev,
-          { fileName: file.name, progress: 0, status: "error", error },
+          {
+            id: uploadId,
+            fileName: file.name,
+            progress: 0,
+            status: "uploading",
+          },
         ]);
-        continue;
-      }
 
-      setUploads((prev) => [
-        ...prev,
-        { fileName: file.name, progress: 0, status: "uploading" },
-      ]);
-
-      try {
-        await uploadDocument(file, (progress) => {
+        try {
+          await uploadDocument(file, (progress) => {
+            setUploads((prev) =>
+              prev.map((u) => (u.id === uploadId ? { ...u, progress } : u))
+            );
+          });
           setUploads((prev) =>
-            prev.map((u) => (u.fileName === file.name ? { ...u, progress } : u))
+            prev.map((u) =>
+              u.id === uploadId ? { ...u, progress: 100, status: "success" } : u
+            )
           );
-        });
-        setUploads((prev) =>
-          prev.map((u) =>
-            u.fileName === file.name ? { ...u, progress: 100, status: "success" } : u
-          )
-        );
-        await loadDocuments();
-      } catch (err) {
-        setUploads((prev) =>
-          prev.map((u) =>
-            u.fileName === file.name
-              ? { ...u, status: "error", error: err instanceof Error ? err.message : "Upload failed" }
-              : u
-          )
-        );
+          await loadDocuments();
+        } catch (err) {
+          setUploads((prev) =>
+            prev.map((u) =>
+              u.id === uploadId
+                ? {
+                    ...u,
+                    status: "error",
+                    error: err instanceof Error ? err.message : "Upload failed",
+                  }
+                : u
+            )
+          );
+        }
       }
-    }
-  }, [loadDocuments]);
+    },
+    [loadDocuments]
+  );
 
-  const removeUpload = (fileName: string) => {
-    setUploads((prev) => prev.filter((u) => u.fileName !== fileName));
+  const removeUpload = (id: string) => {
+    setUploads((prev) => prev.filter((u) => u.id !== id));
   };
 
   const handleDelete = async (fileName: string) => {
@@ -89,16 +117,33 @@ export function FileUploader() {
   };
 
   const allEntries = [
-    ...indexed.map((doc) => ({ fileName: doc.filename, source: "indexed" as const, doc })),
+    ...indexed.map((doc) => ({
+      id: doc.file_hash,
+      fileName: doc.filename,
+      source: "indexed" as const,
+      doc,
+    })),
     ...uploads
-      .filter((u) => !indexed.some((d) => d.filename === u.fileName))
-      .map((u) => ({ fileName: u.fileName, source: "upload" as const, upload: u })),
+      .filter(
+        (u) =>
+          !indexed.some((d) => d.filename === u.fileName) ||
+          u.status === "error"
+      )
+      .map((u) => ({
+        id: u.id,
+        fileName: u.fileName,
+        source: "upload" as const,
+        upload: u,
+      })),
   ];
 
   return (
     <div className="p-4 space-y-3">
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -115,9 +160,12 @@ export function FileUploader() {
       >
         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          Drop files here or <span className="text-primary font-medium">browse</span>
+          Drop files here or{" "}
+          <span className="text-primary font-medium">browse</span>
         </p>
-        <p className="text-[11px] text-muted-foreground mt-1">PDF, TXT, DOCX, CSV — max 50MB</p>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          PDF, TXT, DOCX, CSV
+        </p>
         <input
           ref={inputRef}
           type="file"
@@ -137,21 +185,28 @@ export function FileUploader() {
 
             return (
               <div
-                key={entry.fileName}
+                key={entry.id}
                 className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-xs"
               >
                 <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
 
                 {isError ? (
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="truncate text-foreground">{entry.fileName}</span>
-                    <span className="truncate text-destructive text-[10px]" title={upload.error}>
+                    <span className="truncate text-foreground">
+                      {entry.fileName}
+                    </span>
+                    <span
+                      className="truncate text-destructive text-[10px]"
+                      title={upload.error}
+                    >
                       <XCircle className="w-3 h-3 inline mr-1" />
                       {upload.error}
                     </span>
                   </div>
                 ) : (
-                  <span className="truncate flex-1 text-foreground">{entry.fileName}</span>
+                  <span className="truncate flex-1 text-foreground">
+                    {entry.fileName}
+                  </span>
                 )}
 
                 {upload?.status === "uploading" && (
@@ -181,7 +236,7 @@ export function FileUploader() {
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 shrink-0"
-                    onClick={() => removeUpload(entry.fileName)}
+                    onClick={() => removeUpload(entry.id)}
                   >
                     <X className="w-3 h-3" />
                   </Button>
