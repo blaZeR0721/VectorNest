@@ -63,3 +63,6 @@ Thumbs.db
 
 # sparse model
 bm25_default.json
+
+# document_registry
+document_registry.json
