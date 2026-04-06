@@ -7,10 +7,6 @@ from app.api.routes.upload import router as upload_router
 
 app = FastAPI()
 
-app.include_router(chat_router, prefix="/api")
-app.include_router(upload_router, prefix="/api")
-app.include_router(documents_router, prefix="/api")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,3 +14,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(chat_router, prefix="/api")
+app.include_router(upload_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")

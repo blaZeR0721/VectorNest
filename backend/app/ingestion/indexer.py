@@ -1,12 +1,13 @@
 import json
 import os
 
-from app.core.config import PINECONE_INDEX
 from app.db.pinecone_client import index
 from app.ingestion.embedder import get_embeddings
-from langchain_pinecone import PineconeVectorStore
+from pinecone_text.sparse import SpladeEncoder
 
 REGISTRY_PATH = os.path.join(os.path.dirname(__file__), "..", "document_registry.json")
+
+_splade = SpladeEncoder()
 
 
 def _load_registry() -> dict:
@@ -30,14 +31,32 @@ def index_documents(docs, file_hash: str, filename: str):
     if not docs:
         raise ValueError("No documents to index.")
 
-    embeddings = get_embeddings()
+    embeddings_model = get_embeddings()
+    texts = [doc.page_content for doc in docs]
 
-    for doc in docs:
-        doc.metadata["file_hash"] = file_hash
+    dense_vectors = embeddings_model.embed_documents(texts)
+    sparse_vectors = _splade.encode_documents(texts)
 
-    PineconeVectorStore.from_documents(
-        documents=docs, embedding=embeddings, index_name=PINECONE_INDEX
-    )
+    vectors = []
+    for i, doc in enumerate(docs):
+        vector_id = f"{file_hash}_{i}"
+        metadata = {
+            **doc.metadata,
+            "file_hash": file_hash,
+            "text": doc.page_content,
+        }
+        vectors.append(
+            {
+                "id": vector_id,
+                "values": dense_vectors[i],
+                "sparse_values": sparse_vectors[i],
+                "metadata": metadata,
+            }
+        )
+
+    batch_size = 100
+    for i in range(0, len(vectors), batch_size):
+        index.upsert(vectors=vectors[i : i + batch_size])
 
     registry = _load_registry()
     registry[file_hash] = {"filename": filename, "chunk_count": len(docs)}
