@@ -1,45 +1,74 @@
-import { Moon, Settings, Sun, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+import { KeyRound, LogOut, Moon, Settings, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useApp } from "@/context/appcontext";
 
-export function SettingsPanel() {
-  const { settings, updateSettings, clearHistory, messages, theme, setTheme } =
-    useApp();
+interface SettingsPanelProps {
+  onLogout: () => void;
+  onChangePassword: () => void;
+  loggingOut: boolean;
+}
+
+export function SettingsPanel({
+  onLogout,
+  onChangePassword,
+  loggingOut,
+}: SettingsPanelProps) {
+  const { theme, setTheme } = useApp();
+  const isDark = theme === "dark";
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="p-4 space-y-5">
-      <div className="flex items-center gap-2 text-sm font-display text-foreground">
-        <Settings className="w-4 h-4 text-primary" />
-        Settings
-      </div>
+    <div className="relative">
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-1.5 space-y-1.5 rounded-lg border border-border/40 bg-background/95 p-1.5 shadow-md z-20">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 justify-start rounded-md text-xs border-border/40"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+          >
+            {isDark ? (
+              <Moon className="w-3.5 h-3.5 mr-2" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 mr-2" />
+            )}
+            {isDark ? "Dark mode" : "Light mode"}
+          </Button>
 
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          {theme === "dark" ? (
-            <Moon className="w-3.5 h-3.5" />
-          ) : (
-            <Sun className="w-3.5 h-3.5" />
-          )}
-          {theme === "dark" ? "Dark mode" : "Light mode"}
-        </Label>
-        <Switch
-          checked={theme === "dark"}
-          onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-        />
-      </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 justify-start rounded-md text-xs border-border/40"
+            onClick={onChangePassword}
+          >
+            <KeyRound className="w-3.5 h-3.5 mr-2" />
+            Change password
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 justify-start rounded-md text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-border/40"
+            onClick={onLogout}
+            disabled={loggingOut}
+          >
+            <LogOut className="w-3.5 h-3.5 mr-2" />
+            {loggingOut ? "Logging out..." : "Log out"}
+          </Button>
+        </div>
+      )}
 
       <Button
         variant="outline"
         size="sm"
-        className="w-full text-xs"
-        onClick={clearHistory}
-        disabled={messages.length === 0}
+        className="w-full h-9 justify-start rounded-lg text-xs border-border/40"
+        onClick={() => setOpen((prev) => !prev)}
       >
-        <Trash2 className="w-3 h-3 mr-1.5" />
-        Clear history
+        <Settings className="w-3.5 h-3.5 mr-2" />
+        Settings
       </Button>
     </div>
   );

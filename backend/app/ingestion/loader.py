@@ -1,5 +1,9 @@
-from langchain_community.document_loaders import (CSVLoader, Docx2txtLoader,
-                                                  PyPDFLoader, TextLoader)
+from langchain_community.document_loaders import (
+    CSVLoader,
+    Docx2txtLoader,
+    PyPDFLoader,
+    TextLoader,
+)
 
 
 def load_file(path: str):

@@ -1,14 +1,17 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
+
+from app.core.dependencies import get_current_user
+from app.models.models import User
 from app.models.schema import QueryRequest
 from app.rag.pipeline import run_rag_stream
-from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 
-async def _stream_with_error_guard(query: str):
+async def _stream_with_error_guard(query: str, namespace: str):
     try:
-        async for chunk in run_rag_stream(query):
+        async for chunk in run_rag_stream(query, namespace):
             yield chunk
     except ConnectionError:
         yield "The AI service is temporarily unavailable."
@@ -17,11 +20,13 @@ async def _stream_with_error_guard(query: str):
 
 
 @router.post("/chat")
-async def chat(req: QueryRequest):
-    if not req.query:
+async def chat(req: QueryRequest, current_user: User = Depends(get_current_user)):
+    query = req.query.strip()
+    if not query:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Query must not be empty."
         )
+    namespace = str(current_user.id)
     return StreamingResponse(
-        _stream_with_error_guard(req.query), media_type="text/plain"
+        _stream_with_error_guard(query, namespace), media_type="text/plain"
     )

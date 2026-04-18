@@ -1,92 +1,124 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+import { API_URL } from "@/config/env";
 
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "text/plain",
-  "text/csv",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+import { getAccessToken, getRefreshToken, refreshTokens } from "./authservice";
 
-const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".csv", ".docx"];
+const ALLOWED_EXTENSIONS = [".pdf", ".txt", ".csv", ".docx"] as const;
 
-const MAX_SIZE: Record<string, number> = {
+// Per-extension max sizes (bytes) — must match backend MAX_FILE_SIZE
+const MAX_FILE_SIZE: Record<string, number> = {
   ".txt": 1 * 1024 * 1024,
   ".csv": 3 * 1024 * 1024,
   ".pdf": 10 * 1024 * 1024,
   ".docx": 5 * 1024 * 1024,
 };
 
+function getExtension(name: string): string {
+  const idx = name.lastIndexOf(".");
+  return idx === -1 ? "" : name.slice(idx).toLowerCase();
+}
+
 export function validateFile(file: File): string | null {
-  const ext = "." + file.name.split(".").pop()?.toLowerCase();
-  if (!ALLOWED_EXTENSIONS.includes(ext) && !ALLOWED_TYPES.includes(file.type)) {
-    return `Unsupported file type. Allowed: .pdf, .txt, .csv, .docx`;
+  const ext = getExtension(file.name);
+  if (
+    !ALLOWED_EXTENSIONS.includes(ext as (typeof ALLOWED_EXTENSIONS)[number])
+  ) {
+    return "Unsupported file type. Use PDF, TXT, DOCX, or CSV.";
   }
-  const maxSize = MAX_SIZE[ext] ?? 10 * 1024 * 1024;
-  if (file.size > maxSize) {
-    return `File too large, maximum size for ${ext} files is ${maxSize / (1024 * 1024)}MB`;
+  const max = MAX_FILE_SIZE[ext];
+  if (file.size > max) {
+    return `File is too large. Max size for ${ext.toUpperCase()} is ${max / (1024 * 1024)}MB.`;
   }
   return null;
 }
 
 export interface UploadProgress {
-  id: string;
   fileName: string;
   progress: number;
   status: "uploading" | "success" | "error";
   error?: string;
+  chunkCount?: number;
 }
 
-export interface IndexedDocument {
-  file_hash: string;
+export interface UploadResponse {
+  status: string;
   filename: string;
   chunk_count: number;
 }
 
 export async function uploadDocument(
   file: File,
-  onProgress?: (progress: number) => void
-): Promise<{ message: string }> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append("file", file);
+  onProgress?: (progress: number) => void,
+  signal?: AbortSignal
+): Promise<UploadResponse> {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("You must be logged in to upload files.");
+  }
 
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    });
+  const sendOnce = (bearerToken: string) =>
+    new Promise<UploadResponse>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file, file.name);
 
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText));
-      } else {
-        try {
-          const err = JSON.parse(xhr.responseText);
-          reject(new Error(err.detail || `Upload failed: ${xhr.status}`));
-        } catch {
-          reject(new Error(`Upload failed: ${xhr.status}`));
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
         }
-      }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText) as UploadResponse);
+          } catch {
+            reject(new Error("Invalid server response"));
+          }
+          return;
+        }
+
+        // Keep user-facing errors short and clear.
+        let message = "Upload failed. Try again.";
+        if (xhr.status === 401)
+          message = "Session expired. Please log in again.";
+        else if (xhr.status === 409) message = "This file is already uploaded.";
+        else if (xhr.status === 413) message = "File is too large.";
+        else if (xhr.status >= 500)
+          message = "Server error. Try again in a moment.";
+
+        const err = new Error(message) as Error & { status?: number };
+        err.status = xhr.status;
+        reject(err);
+      });
+
+      xhr.addEventListener("error", () =>
+        reject(new Error("Network error. Check your connection and try again."))
+      );
+      xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
+      signal?.addEventListener(
+        "abort",
+        () => {
+          xhr.abort();
+        },
+        { once: true }
+      );
+
+      xhr.open("POST", `${API_URL}/uploads`);
+      xhr.setRequestHeader("Authorization", `Bearer ${bearerToken}`);
+      xhr.send(formData);
     });
 
-    xhr.addEventListener("error", () =>
-      reject(new Error("Network error during upload"))
-    );
-    xhr.open("POST", `${API_BASE}/api/uploads`);
-    xhr.send(formData);
-  });
-}
-
-export async function fetchDocuments(): Promise<IndexedDocument[]> {
-  const res = await fetch(`${API_BASE}/api/documents`);
-  if (!res.ok) throw new Error("Failed to fetch documents");
-  return res.json();
-}
-
-export async function deleteDocument(file_hash: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/documents/${file_hash}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error("Failed to delete document");
+  try {
+    return await sendOnce(token);
+  } catch (e) {
+    const err = e as Error & { status?: number };
+    // If access token expired, refresh once and retry.
+    if (err.status === 401 && getRefreshToken()) {
+      await refreshTokens();
+      const newToken = getAccessToken();
+      if (!newToken) throw new Error("Session expired. Please log in again.");
+      return await sendOnce(newToken);
+    }
+    throw e;
+  }
 }

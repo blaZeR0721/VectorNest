@@ -30,8 +30,10 @@ export function ChatBubble({ message }: { message: Message }) {
     >
       <div
         className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-1",
-          isUser ? "bg-primary/20" : "bg-secondary"
+          "flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mt-1 border transition-colors",
+          isUser
+            ? "bg-primary/15 border-primary/25"
+            : "bg-secondary border-border/50"
         )}
       >
         {isUser ? (
@@ -44,10 +46,10 @@ export function ChatBubble({ message }: { message: Message }) {
       <div className="flex flex-col gap-1">
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+            "rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
             isUser
-              ? "bg-primary text-primary-foreground rounded-tr-sm"
-              : "bg-secondary text-secondary-foreground rounded-tl-sm"
+              ? "bg-primary text-primary-foreground rounded-tr-sm shadow-primary/20"
+              : "bg-secondary text-secondary-foreground rounded-tl-sm border border-border/30"
           )}
         >
           <p className="whitespace-pre-wrap">{message.content}</p>
@@ -58,7 +60,7 @@ export function ChatBubble({ message }: { message: Message }) {
             {message.sources.map((src, i) => (
               <span
                 key={i}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-display"
+                className="text-[10px] px-2 py-0.5 rounded-full bg-primary/8 text-primary font-display border border-primary/15"
               >
                 {src}
               </span>
@@ -72,10 +74,9 @@ export function ChatBubble({ message }: { message: Message }) {
             isUser ? "flex-row-reverse" : "flex-row"
           )}
         >
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-[10px] text-muted-foreground/70">
             {formatTime(message.timestamp)}
           </span>
-
           {!isUser && (
             <button
               onClick={handleCopy}

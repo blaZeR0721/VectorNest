@@ -29,7 +29,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="flex items-end gap-2 p-4 border-t border-border bg-card">
+    <div className="flex items-end gap-3 p-4 border-t border-border/50 bg-card/50 backdrop-blur-xl">
       <textarea
         ref={textareaRef}
         value={value}
@@ -43,13 +43,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         placeholder="Ask VectorNest something..."
         disabled={disabled}
         rows={1}
-        className="flex-1 resize-none bg-muted rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring scrollbar-thin"
+        className="flex-1 resize-none overflow-hidden bg-muted/30 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/30 transition-all"
       />
       <Button
         size="icon"
         onClick={handleSubmit}
         disabled={disabled || !value.trim()}
-        className="rounded-xl h-11 w-11 shrink-0"
+        className="rounded-xl h-11 w-11 shrink-0 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all"
+        title="Send message"
       >
         <Send className="w-4 h-4" />
       </Button>

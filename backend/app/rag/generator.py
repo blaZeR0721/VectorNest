@@ -1,7 +1,8 @@
 from functools import lru_cache
 
-from app.core.config import GROQ_API_KEY
 from langchain_groq import ChatGroq
+
+from app.core.config import GROQ_API_KEY
 
 
 @lru_cache(maxsize=1)
